@@ -1,0 +1,36 @@
+# --- Data (large, and redistributed from Kaggle; never commit) ---
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+Kaggle-dataset/
+*.csv
+*.zip
+
+# --- Local database files (rebuilt from code) ---
+database/*.db
+*.db
+*.sqlite
+*.sqlite3
+
+# --- Secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- Editor / OS ---
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Personal sprint tracking (local only) ---
+.progress/
