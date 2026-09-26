@@ -1,1 +1,1 @@
-pandas==3.0.6
+# No third-party runtime dependencies yet (Python stdlib: csv, sqlite3)
