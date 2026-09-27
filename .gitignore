@@ -34,3 +34,6 @@ desktop.ini
 
 # --- Personal sprint tracking (local only) ---
 .progress/
+
+# --- Local LLM run logs (may contain API responses) ---
+logs/
