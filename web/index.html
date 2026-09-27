@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agency Performance Analyst</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f6f6f4;
+    --surface-1: #fcfcfb;
+    --surface-2: #f0efec;
+    --border: #e2e1dc;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #77756f;
+    --accent: #2a78d6;
+    --accent-ink: #ffffff;
+    --series-1: #2a78d6;
+    --grid: #e7e6e1;
+    --warn-bg: #fff4e0;
+    --warn-ink: #7a4b00;
+    --error-bg: #fdecec;
+    --error-ink: #8f1d1d;
+    --code-bg: #f3f2ee;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #121211;
+      --surface-1: #1a1a19;
+      --surface-2: #232321;
+      --border: #33332f;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #96958c;
+      --accent: #3987e5;
+      --accent-ink: #ffffff;
+      --series-1: #3987e5;
+      --grid: #2c2c29;
+      --warn-bg: #3a2c10;
+      --warn-ink: #f3c96b;
+      --error-bg: #3b1818;
+      --error-ink: #f4a3a3;
+      --code-bg: #232321;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #121211; --surface-1: #1a1a19; --surface-2: #232321; --border: #33332f;
+    --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #96958c;
+    --accent: #3987e5; --accent-ink: #ffffff; --series-1: #3987e5; --grid: #2c2c29;
+    --warn-bg: #3a2c10; --warn-ink: #f3c96b; --error-bg: #3b1818; --error-ink: #f4a3a3; --code-bg: #232321;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text-primary);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; flex-direction: column; height: 100vh;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface-1);
+  }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--text-muted); font-size: 13px; }
+  .badge { font-size: 12px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
+
+  main { flex: 1; overflow-y: auto; padding: 16px; }
+  .thread { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+  .welcome { text-align: center; padding: 32px 8px 8px; color: var(--text-secondary); }
+  .welcome h2 { color: var(--text-primary); font-size: 20px; margin: 0 0 6px; }
+  .examples { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 16px; }
+  .examples button {
+    font: inherit; font-size: 13px; cursor: pointer; text-align: left;
+    background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; max-width: 280px;
+  }
+  .examples button:hover { border-color: var(--accent); }
+
+  .msg-user {
+    align-self: flex-end; max-width: 80%; background: var(--accent); color: var(--accent-ink);
+    padding: 10px 14px; border-radius: 14px 14px 4px 14px; white-space: pre-wrap;
+  }
+  .msg-bot {
+    align-self: stretch; background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0;
+  }
+  .answer { white-space: pre-wrap; }
+  .notice { border-radius: 8px; padding: 10px 12px; }
+  .notice.warn { background: var(--warn-bg); color: var(--warn-ink); }
+  .notice.error { background: var(--error-bg); color: var(--error-ink); }
+  .section-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+
+  .assumptions { margin: 0; padding-left: 18px; color: var(--text-secondary); font-size: 14px; }
+
+  details { border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); }
+  details > summary { cursor: pointer; padding: 8px 12px; font-size: 13px; color: var(--text-secondary); }
+  details pre {
+    margin: 0; padding: 12px; overflow-x: auto; background: var(--code-bg);
+    font: 13px/1.45 ui-monospace, Consolas, monospace; white-space: pre-wrap; word-break: break-word;
+    border-top: 1px solid var(--border); border-radius: 0 0 8px 8px;
+  }
+
+  .table-wrap { overflow: auto; max-height: 320px; border: 1px solid var(--border); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 6px 10px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+  th { position: sticky; top: 0; background: var(--surface-2); text-align: left; font-weight: 600; color: var(--text-secondary); }
+  td.num, th.num { text-align: right; }
+  .meta { font-size: 12px; color: var(--text-muted); }
+
+  .chart { position: relative; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart .axis-label { fill: var(--text-muted); font-size: 11px; }
+  .chart .cat-label { fill: var(--text-secondary); font-size: 12px; }
+  .chart .gridline { stroke: var(--grid); stroke-width: 1; }
+  .chart .bar { fill: var(--series-1); }
+  .chart .bar:hover, .chart .bar:focus { opacity: .8; outline: none; }
+  .chart .line { fill: none; stroke: var(--series-1); stroke-width: 2; }
+  .chart .dot { fill: var(--series-1); stroke: var(--surface-1); stroke-width: 2; }
+  .chart .crosshair { stroke: var(--text-muted); stroke-width: 1; }
+  .tooltip {
+    position: absolute; pointer-events: none; background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.12); white-space: nowrap; display: none; z-index: 2;
+  }
+  .tooltip strong { display: block; font-size: 13px; }
+  .tooltip span { color: var(--text-secondary); }
+
+  .thinking { color: var(--text-muted); font-style: italic; }
+
+  footer { border-top: 1px solid var(--border); background: var(--surface-1); padding: 12px 16px; }
+  form { max-width: 920px; margin: 0 auto; display: flex; gap: 8px; }
+  textarea {
+    flex: 1; resize: none; font: inherit; color: var(--text-primary); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; min-height: 44px; max-height: 140px;
+  }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  button.send {
+    font: inherit; font-weight: 600; cursor: pointer; border: 0; border-radius: 10px; padding: 0 18px;
+    background: var(--accent); color: var(--accent-ink);
+  }
+  button.send:disabled { opacity: .5; cursor: default; }
+  .disclaimer { max-width: 920px; margin: 6px auto 0; font-size: 11px; color: var(--text-muted); }
+
+  @media (max-width: 600px) {
+    header .sub { display: none; }
+    .msg-user { max-width: 92%; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Agency Performance Analyst</h1>
+    <div class="sub">Ask questions about 2005–2015 insurance agency data. Every number comes from a read-only SQL query.</div>
+  </div>
+  <span class="badge" id="model">connecting…</span>
+</header>
+
+<main id="scroll">
+  <div class="thread" id="thread">
+    <div class="welcome" id="welcome">
+      <h2>What would you like to know?</h2>
+      <div>Premium, losses, loss ratio, retention, policies in force, new business, quote-to-bind, by agency, product, state or year.</div>
+      <div class="examples" id="examples"></div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <form id="form">
+    <textarea id="q" rows="1" placeholder="e.g. What was the loss ratio by product line in 2014?" maxlength="500"></textarea>
+    <button class="send" id="send" type="submit">Ask</button>
+  </form>
+  <div class="disclaimer">Proof of concept on public Kaggle data. 2005 and 2015 are partial years. Check the SQL before relying on an answer.</div>
+</footer>
+
+<script>
+const EXAMPLES = [
+  "Show total written premium for each year.",
+  "What is the loss ratio by product line for 2014?",
+  "Which 10 agencies had the highest written premium in 2014?",
+  "How did the policy retention rate change from 2006 to 2014?",
+  "What is the quote-to-bind rate for each personal lines quoting platform?",
+  "Which states had the highest loss ratio over 2012 to 2014?",
+];
+
+const $ = (id) => document.getElementById(id);
+const thread = $("thread"), scroller = $("scroll"), input = $("q"), sendBtn = $("send");
+
+function el(tag, attrs = {}, text) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  if (text !== undefined) node.textContent = text;   // textContent only: never inject HTML
+  return node;
+}
+function svgEl(tag, attrs = {}, text) {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+// ---------- number formatting by column name ----------
+function kindOf(col) {
+  const c = col.toLowerCase();
+  if (/year/.test(c)) return "year";
+  if (/_id$|^agency_id$|^id$/.test(c)) return "id";
+  if (/ratio|rate|share|pct|percent|growth/.test(c)) return "pct";
+  if (/amt|prem|premium|loss|amount|revenue/.test(c)) return "money";
+  return "num";
+}
+function fmt(value, col) {
+  if (value === null || value === undefined) return "—";
+  if (typeof value !== "number") return String(value);
+  switch (kindOf(col)) {
+    case "year": case "id": return String(value);
+    case "pct": return (value * 100).toLocaleString(undefined, { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + "%";
+    case "money": return "$" + Math.round(value).toLocaleString();
+    default: return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  }
+}
+function fmtShort(value, col) {   // axis ticks
+  const k = kindOf(col);
+  if (k === "pct") return (value * 100).toLocaleString(undefined, { maximumFractionDigits: 0 }) + "%";
+  const abs = Math.abs(value), sign = value < 0 ? "-" : "", pre = k === "money" ? "$" : "";
+  if (abs >= 1e9) return sign + pre + (abs / 1e9).toFixed(1).replace(/\.0$/, "") + "B";
+  if (abs >= 1e6) return sign + pre + (abs / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
+  if (abs >= 1e3) return sign + pre + (abs / 1e3).toFixed(0) + "K";
+  return sign + pre + (Number.isInteger(abs) ? abs : abs.toFixed(2));
+}
+function isNumericCol(rows, i) {
+  return rows.some(r => typeof r[i] === "number") && rows.every(r => r[i] === null || typeof r[i] === "number");
+}
+function niceTicks(min, max, count = 4) {
+  if (min === max) max = min + 1;
+  const raw = (max - min) / count, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw);
+  const first = Math.floor(min / step), last = Math.ceil(max / step);   // always cover min..max
+  const ticks = [];
+  for (let i = first; i <= last; i++) ticks.push(+(i * step).toFixed(10));
+  return ticks;
+}
+
+// ---------- chart: one series, bar (categories) or line (years) ----------
+function buildChart(columns, rows) {
+  if (rows.length < 2 || rows.length > 40 || columns.length < 2) return null;
+  const numeric = columns.map((_, i) => isNumericCol(rows, i));
+  let labelIdx = columns.findIndex((c, i) => !numeric[i] || ["year", "id"].includes(kindOf(c)));
+  if (labelIdx === -1) return null;
+  const valueIdx = columns.findIndex((c, i) => i !== labelIdx && numeric[i] && !["year", "id"].includes(kindOf(c)));
+  if (valueIdx === -1) return null;
+  // With 2+ label-like columns (e.g. line x state), a single-series chart would mislead.
+  const otherLabels = columns.filter((c, i) => i !== labelIdx && (!numeric[i] || ["year", "id"].includes(kindOf(c))));
+  if (otherLabels.length) return null;
+
+  const labelCol = columns[labelIdx], valueCol = columns[valueIdx];
+  const data = rows.map(r => ({ label: fmt(r[labelIdx], labelCol), value: r[valueIdx] })).filter(d => d.value !== null);
+  if (data.length < 2) return null;
+
+  const wrap = el("div", { class: "chart" });
+  wrap.appendChild(el("div", { class: "section-label" }, valueCol.replace(/_/g, " ") + " by " + labelCol.replace(/_/g, " ")));
+  const tip = el("div", { class: "tooltip" });
+  const showTip = (evt, d) => {
+    tip.replaceChildren(el("strong", {}, fmt(d.value, valueCol)), el("span", {}, d.label));
+    const box = wrap.getBoundingClientRect();
+    const x = (evt.clientX ?? box.left + box.width / 2) - box.left, y = (evt.clientY ?? box.top + 40) - box.top;
+    tip.style.display = "block";
+    tip.style.left = Math.min(x + 12, box.width - tip.offsetWidth - 4) + "px";
+    tip.style.top = Math.max(y - 44, 0) + "px";
+  };
+  const hideTip = () => { tip.style.display = "none"; };
+
+  const values = data.map(d => d.value);
+  const vMin = Math.min(0, ...values), vMax = Math.max(0, ...values);
+  const ticks = niceTicks(vMin, vMax);
+  const lo = ticks[0], hi = ticks[ticks.length - 1];
+
+  if (kindOf(labelCol) === "year") {            // ---- line chart over time
+    const W = 720, H = 260, L = 56, R = 16, T = 12, B = 28;
+    const x = i => L + (i * (W - L - R)) / (data.length - 1);
+    const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+    const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": `${valueCol} by ${labelCol}` });
+    ticks.forEach(t => {
+      svg.appendChild(svgEl("line", { class: "gridline", x1: L, x2: W - R, y1: y(t), y2: y(t) }));
+      svg.appendChild(svgEl("text", { class: "axis-label", x: L - 8, y: y(t) + 4, "text-anchor": "end" }, fmtShort(t, valueCol)));
+    });
+    data.forEach((d, i) => svg.appendChild(svgEl("text", { class: "axis-label", x: x(i), y: H - 8, "text-anchor": "middle" }, d.label)));
+    svg.appendChild(svgEl("polyline", { class: "line", points: data.map((d, i) => `${x(i)},${y(d.value)}`).join(" ") }));
+    const cross = svgEl("line", { class: "crosshair", y1: T, y2: H - B, visibility: "hidden" });
+    svg.appendChild(cross);
+    const dots = data.map((d, i) => {
+      const c = svgEl("circle", { class: "dot", cx: x(i), cy: y(d.value), r: 4, tabindex: 0 });
+      c.addEventListener("focus", e => showTip(e, d)); c.addEventListener("blur", hideTip);
+      svg.appendChild(c); return c;
+    });
+    svg.addEventListener("pointermove", e => {
+      const pt = svg.getBoundingClientRect(), vx = ((e.clientX - pt.left) / pt.width) * W;
+      const i = Math.max(0, Math.min(data.length - 1, Math.round(((vx - L) / (W - L - R)) * (data.length - 1))));
+      cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("visibility", "visible");
+      dots.forEach((c, j) => c.setAttribute("r", j === i ? 6 : 4));
+      showTip(e, data[i]);
+    });
+    svg.addEventListener("pointerleave", () => { cross.setAttribute("visibility", "hidden"); dots.forEach(c => c.setAttribute("r", 4)); hideTip(); });
+    wrap.appendChild(svg);
+  } else {                                        // ---- horizontal bars for categories
+    const rowH = 26, gap = 2, W = 720, L = 150, R = 16, T = 4, B = 22;
+    const H = T + data.length * rowH + B;
+    const x = v => L + (W - L - R) * ((v - lo) / (hi - lo));
+    const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": `${valueCol} by ${labelCol}` });
+    ticks.forEach(t => {
+      svg.appendChild(svgEl("line", { class: "gridline", x1: x(t), x2: x(t), y1: T, y2: H - B }));
+      svg.appendChild(svgEl("text", { class: "axis-label", x: x(t), y: H - 6, "text-anchor": "middle" }, fmtShort(t, valueCol)));
+    });
+    data.forEach((d, i) => {
+      const yTop = T + i * rowH + gap, h = rowH - gap * 2 - 4;
+      const label = d.label.length > 20 ? d.label.slice(0, 19) + "…" : d.label;
+      svg.appendChild(svgEl("text", { class: "cat-label", x: L - 8, y: yTop + h / 2 + 4, "text-anchor": "end" }, label));
+      const x0 = x(0), x1 = x(d.value);
+      const bar = svgEl("rect", { class: "bar", x: Math.min(x0, x1), y: yTop, width: Math.max(Math.abs(x1 - x0), 1), height: h, rx: 4, tabindex: 0 });
+      bar.addEventListener("pointermove", e => showTip(e, d)); bar.addEventListener("pointerleave", hideTip);
+      bar.addEventListener("focus", e => showTip(e, d)); bar.addEventListener("blur", hideTip);
+      svg.appendChild(bar);
+    });
+    wrap.appendChild(svg);
+  }
+  wrap.appendChild(tip);
+  return wrap;
+}
+
+// ---------- results table ----------
+function buildTable(columns, rows, truncated) {
+  const box = el("div");
+  const wrap = el("div", { class: "table-wrap" });
+  const table = el("table"), thead = el("thead"), tbody = el("tbody"), hr = el("tr");
+  const numeric = columns.map((_, i) => isNumericCol(rows, i));
+  columns.forEach((c, i) => hr.appendChild(el("th", numeric[i] ? { class: "num" } : {}, c)));
+  thead.appendChild(hr);
+  rows.forEach(r => {
+    const tr = el("tr");
+    r.forEach((v, i) => tr.appendChild(el("td", numeric[i] ? { class: "num" } : {}, fmt(v, columns[i]))));
+    tbody.appendChild(tr);
+  });
+  table.append(thead, tbody); wrap.appendChild(table); box.appendChild(wrap);
+  box.appendChild(el("div", { class: "meta" }, `${rows.length} row${rows.length === 1 ? "" : "s"}${truncated ? " (truncated at the row limit)" : ""}`));
+  return box;
+}
+
+// ---------- chat rendering ----------
+function renderRecord(rec) {
+  const card = el("div", { class: "msg-bot" });
+  if (rec.status === "not_answerable") {
+    card.appendChild(el("div", { class: "notice warn" }, "This data can't answer that. " + (rec.reason || "")));
+    return card;
+  }
+  if (rec.status === "ok") card.appendChild(el("div", { class: "answer" }, rec.answer));
+  if (rec.status === "rejected") card.appendChild(el("div", { class: "notice error" }, "Blocked by the SQL safety guard: " + rec.error));
+  if (rec.status === "sql_error") card.appendChild(el("div", { class: "notice error" }, "The generated SQL failed to run: " + rec.error));
+
+  if (rec.status === "ok" && rec.columns.length) {
+    const chart = buildChart(rec.columns, rec.rows);
+    if (chart) card.appendChild(chart);
+    card.appendChild(buildTable(rec.columns, rec.rows, rec.truncated));
+  }
+  if (rec.assumptions && rec.assumptions.length) {
+    const box = el("div");
+    box.appendChild(el("div", { class: "section-label" }, "Assumptions"));
+    const ul = el("ul", { class: "assumptions" });
+    rec.assumptions.forEach(a => ul.appendChild(el("li", {}, a)));
+    box.appendChild(ul); card.appendChild(box);
+  }
+  if (rec.sql) {
+    const det = el("details");
+    const label = rec.status === "ok" ? "SQL that produced these numbers"
+      : rec.status === "rejected" ? "Generated SQL (blocked, not run)" : "Generated SQL (failed)";
+    det.appendChild(el("summary", {}, label));
+    det.appendChild(el("pre", {}, rec.sql));
+    card.appendChild(det);
+  }
+  return card;
+}
+
+function errorCard(message) {
+  const card = el("div", { class: "msg-bot" });
+  card.appendChild(el("div", { class: "notice error" }, message));
+  return card;
+}
+
+function scrollDown() { scroller.scrollTop = scroller.scrollHeight; }
+
+async function ask(question) {
+  $("welcome")?.remove();
+  thread.appendChild(el("div", { class: "msg-user" }, question));
+  const pending = el("div", { class: "msg-bot thinking" }, "Writing SQL, running it, reading the results…");
+  thread.appendChild(pending); scrollDown();
+  sendBtn.disabled = true; input.disabled = true;
+  try {
+    const res = await fetch("/api/ask", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question }),
+    });
+    const data = await res.json();
+    pending.replaceWith(res.ok ? renderRecord(data) : errorCard(data.error || `Request failed (${res.status})`));
+  } catch (err) {
+    pending.replaceWith(errorCard("Could not reach the local server. Is python src/web_app.py still running?"));
+  } finally {
+    sendBtn.disabled = false; input.disabled = false; input.focus(); scrollDown();
+  }
+}
+
+EXAMPLES.forEach(q => {
+  const b = el("button", { type: "button" }, q);
+  b.addEventListener("click", () => ask(q));
+  $("examples").appendChild(b);
+});
+
+$("form").addEventListener("submit", e => {
+  e.preventDefault();
+  const q = input.value.trim();
+  if (!q) return;
+  input.value = ""; input.style.height = "";
+  ask(q);
+});
+input.addEventListener("keydown", e => {   // Enter sends, Shift+Enter adds a line
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("form").requestSubmit(); }
+});
+input.addEventListener("input", () => { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 140) + "px"; });
+
+fetch("/api/health").then(r => r.json())
+  .then(d => { $("model").textContent = d.model ? "Model: " + d.model : "Model not set"; })
+  .catch(() => { $("model").textContent = "Server offline"; });
+</script>
+</body>
+</html>
