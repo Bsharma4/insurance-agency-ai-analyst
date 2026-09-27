@@ -7,11 +7,15 @@ Uses only the standard library (urllib), so there is nothing to install.
 
 import json
 import os
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+
+RETRY_STATUS_CODES = {429, 500, 502, 503}   # rate limited / temporarily overloaded
+MAX_ATTEMPTS = 4                            # 1 try + 3 retries, waits of 2s, 4s, 8s
 
 
 def load_env(path: Path = ROOT / ".env") -> None:
@@ -41,12 +45,19 @@ def chat(messages: list[dict], temperature: float = 0.0, timeout: int = 60) -> s
         data=body,
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
     )
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            payload = json.load(response)
-    except urllib.error.HTTPError as e:
-        detail = e.read().decode(errors="replace")[:500]
-        raise RuntimeError(f"LLM API returned HTTP {e.code}: {detail}") from e
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                payload = json.load(response)
+            break
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode(errors="replace")[:500]
+            if e.code in RETRY_STATUS_CODES and attempt < MAX_ATTEMPTS:
+                wait = 2 ** attempt
+                print(f"  (LLM API busy: HTTP {e.code}, retry {attempt}/{MAX_ATTEMPTS - 1} in {wait}s)")
+                time.sleep(wait)
+                continue
+            raise RuntimeError(f"LLM API returned HTTP {e.code}: {detail}") from e
 
     return payload["choices"][0]["message"]["content"]
 
