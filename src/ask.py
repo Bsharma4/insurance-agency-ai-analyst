@@ -107,42 +107,69 @@ def log(entry: dict) -> None:
         f.write(json.dumps(entry, default=str) + "\n")
 
 
-def ask(question: str) -> dict:
-    """Run the full pipeline for one question and return a result record."""
-    record = {"question": question, "status": None}
+def answer(question: str) -> dict:
+    """Run the full pipeline for one question and return a result record (no printing).
+
+    Used by both the command line (ask) and the web app (web_app.py).
+    status is one of: ok, not_answerable, rejected, sql_error.
+    """
+    record = {"question": question, "status": None, "sql": "", "assumptions": [],
+              "reason": "", "error": "", "columns": [], "rows": [], "truncated": False, "answer": ""}
 
     plan = generate_sql(question)
     record.update(plan)
 
     if not plan.get("answerable") or not plan.get("sql"):
         record["status"] = "not_answerable"
-        print(f"\nCannot answer from this data: {plan.get('reason', 'no reason given')}")
+        record["reason"] = plan.get("reason") or "No reason given."
         return record
 
-    sql = plan["sql"]
-    print("\nGenerated SQL:\n" + sql)
-    if plan["assumptions"]:
-        print("\nAssumptions:\n- " + "\n- ".join(plan["assumptions"]))
-
     try:
-        columns, rows, truncated = run_readonly(DB_PATH, sql, max_rows=MAX_ROWS)
+        columns, rows, truncated = run_readonly(DB_PATH, plan["sql"], max_rows=MAX_ROWS)
     except UnsafeQueryError as e:
         record.update(status="rejected", error=str(e))
-        print(f"\nREJECTED by SQL guard: {e}")
         return record
     except sqlite3.Error as e:
         record.update(status="sql_error", error=str(e))
-        print(f"\nSQL error: {e}")
         return record
 
-    print(f"\nResults ({len(rows)} rows{', truncated' if truncated else ''}):")
-    print_table(columns, rows)
-
-    answer = explain(question, sql, plan["assumptions"], columns, rows, truncated)
-    print("\nAnswer:\n" + answer)
-    record.update(status="ok", columns=columns, row_count=len(rows), truncated=truncated,
-                  rows_preview=rows[:10], answer=answer)
+    record.update(columns=columns, rows=[list(r) for r in rows], truncated=truncated)
+    record["answer"] = explain(question, plan["sql"], plan["assumptions"], columns, rows, truncated)
+    record["status"] = "ok"
     return record
+
+
+def print_record(record: dict) -> None:
+    """Command-line display of a result record."""
+    if record["status"] == "not_answerable":
+        print(f"\nCannot answer from this data: {record['reason']}")
+        return
+    print("\nGenerated SQL:\n" + record["sql"])
+    if record["assumptions"]:
+        print("\nAssumptions:\n- " + "\n- ".join(record["assumptions"]))
+    if record["status"] == "rejected":
+        print(f"\nREJECTED by SQL guard: {record['error']}")
+    elif record["status"] == "sql_error":
+        print(f"\nSQL error: {record['error']}")
+    else:
+        rows = record["rows"]
+        print(f"\nResults ({len(rows)} rows{', truncated' if record['truncated'] else ''}):")
+        print_table(record["columns"], rows)
+        print("\nAnswer:\n" + record["answer"])
+
+
+def ask(question: str) -> dict:
+    record = answer(question)
+    print_record(record)
+    return record
+
+
+def log_record(record: dict) -> None:
+    """Log a record without the full result rows (keeps the log small)."""
+    entry = {k: v for k, v in record.items() if k != "rows"}
+    entry["row_count"] = len(record.get("rows", []))
+    entry["rows_preview"] = record.get("rows", [])[:10]
+    log(entry)
 
 
 def main() -> int:
@@ -157,7 +184,7 @@ def main() -> int:
         if not question:
             return 0
         try:
-            log(ask(question))
+            log_record(ask(question))
         except Exception as e:  # API/network/JSON problems: report and keep going
             print(f"\nError: {e}")
             log({"question": question, "status": "error", "error": str(e)})
